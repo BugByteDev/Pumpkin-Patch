@@ -8,7 +8,7 @@ if args.opengl_dir:
     driver=Path(args.opengl_dir).resolve();env['PUMPKIN_CI_OPENGL_DIR']=str(driver);env['QT_OPENGL_DLL']=str(driver/'opengl32.dll');env['GALLIUM_DRIVER']='llvmpipe';env['QT_OPENGL']='desktop'
 with tempfile.TemporaryDirectory(prefix='pumpkin-launch-',ignore_cleanup_errors=True) as cwd:
     process=subprocess.Popen([str(exe),'--smoke-test',str(report)],cwd=cwd,env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
-    try:stdout,stderr=process.communicate(timeout=180)
+    try:stdout,stderr=process.communicate(timeout=420)
     except subprocess.TimeoutExpired:
         if os.name=='nt':subprocess.run(['taskkill','/PID',str(process.pid),'/T','/F'],capture_output=True)
         else:process.kill()

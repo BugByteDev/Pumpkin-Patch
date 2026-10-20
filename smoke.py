@@ -38,7 +38,9 @@ def run(output):
         (output/'graphics-error.txt').write_text(str(window.view.error)+'\n'+traceback.format_exc())
         raise
     result={'platform':sys.platform,'frozen':bool(getattr(sys,'frozen',False)),'checks':[]}
-    state=0;deadline=time.monotonic()+120;poll=QTimer()
+    state=0;deadline=time.monotonic()+300;poll=QTimer()
+    from feature_checks import FeatureChecks
+    features=FeatureChecks(window,output,result)
     def finish(error=None):
         poll.stop()
         result['ok']=error is None
@@ -49,8 +51,9 @@ def run(output):
         nonlocal state
         try:
             (output/'progress.json').write_text(json.dumps({'stage':state,'program':bool(window.view.program),'objects':len(window.view.objects),'job':window.job is not None,'revision':window.revision,'wanted':window.want_revision,'status':window.message}))
-            if time.monotonic()>deadline:raise TimeoutError('App did not finish building/rendering within 120 seconds')
+            if time.monotonic()>deadline:raise TimeoutError('App did not finish building/rendering within 300 seconds')
             if window.view.error:raise RuntimeError(window.view.error)
+            if window.message.startswith(('Could not build','Could not start')):raise RuntimeError(window.message)
             if window.delay.isActive() or window.job is not None or window.revision!=window.want_revision:return
             if not window.view.program or not window.view.objects or window.view.pending is not None:return
             if state==0:
@@ -91,7 +94,8 @@ def run(output):
             if state==5:
                 window.grab().save(str(output/'info.png'));window.close_overlay()
                 result['checks'].append('saved gallery and info panels opened')
-                finish()
+                state=6;return
+            if state==6 and features.tick():finish()
         except Exception:finish(traceback.format_exc())
     poll.timeout.connect(tick);poll.start(200)
     code=app.exec();isolated.cleanup()

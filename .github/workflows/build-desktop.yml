@@ -1,4 +1,4 @@
-name: Build Windows and Linux beta
+name: Build and check desktop features
 on:
   workflow_dispatch:
 permissions:
@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Prepare draft beta download
-        run: gh release create "$BETA_TAG" --draft --prerelease --target '${{ github.sha }}' --title 'Pumpkin Patch Windows and Linux beta' --notes 'Portable Windows x64 and Linux x64 builds. Automated geometry, controller, export, compiled-app startup and software OpenGL checks pass before publication. Hardware drivers and native file dialogs still need manual testing. Extract the whole archive; Python and Blender are not required.'
+        run: gh release create "$BETA_TAG" --draft --prerelease --target '${{ github.sha }}' --title 'Pumpkin Patch desktop beta' --notes 'Portable macOS Apple Silicon, Windows x64 and Linux x64 builds. Automated geometry, controller, export, compiled-app startup and software OpenGL checks pass before publication. Hardware drivers and native file dialogs still need manual testing. Extract the whole archive; Python and Blender are not required.'
   build:
     needs: prepare
     # Standard public-repository runners only. No paid or self-hosted runners.
@@ -29,6 +29,8 @@ jobs:
             label: windows-x64
           - os: ubuntu-22.04
             label: linux-x64
+          - os: macos-14
+            label: macos-arm64
     runs-on: ${{ matrix.os }}
     timeout-minutes: 25
     env:
@@ -72,6 +74,9 @@ jobs:
       - name: Test compiled Linux app and render screenshots
         if: runner.os == 'Linux'
         run: xvfb-run -a -s '-screen 0 1600x1000x24' python tools/check_packaged.py --executable 'dist/Pumpkin Patch/Pumpkin Patch' --report-dir smoke-results
+      - name: Test compiled Mac app and exercise features
+        if: runner.os == 'macOS'
+        run: python tools/check_packaged.py --executable 'dist/Pumpkin Patch.app/Contents/MacOS/Pumpkin Patch' --report-dir smoke-results
       - name: Package beta download
         shell: bash
         run: python tools/package_release.py ${{ matrix.label }}
