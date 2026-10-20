@@ -64,10 +64,12 @@ Edited pumpkin meshes and thumbnails are cached by their visual contents under t
 
 Unlit pumpkins redraw on interaction and window exposure. Lit pumpkins also redraw for the candle animation.
 
-## Free Windows and Linux builds
+## Free desktop builds
 
-The **Build Windows and Linux beta** workflow in GitHub Actions builds both x64 platforms on standard free public-repository runners. Run it manually from the Actions tab. It refuses private repositories, does not use paid runners or Actions caches, and stores downloads as Release assets rather than billed Actions artifacts. A draft prerelease is published only when both platform jobs pass.
+The **Build and check desktop features** workflow in GitHub Actions builds Windows x64, Linux x64 and macOS Apple Silicon on standard free public-repository runners. Run it manually from the Actions tab. It refuses private repositories, does not use paid runners or Actions caches, and stores downloads as Release assets rather than billed Actions artifacts. A draft prerelease is published only when all three platform jobs pass.
 
 Each job runs the full test suite, compiles with PyInstaller, then starts the compiled app from a temporary directory outside the source tree. The smoke check uses isolated data, checks the blank pumpkin, a scary preset, custom carving, rotation, candlelight, gallery, info, editable save, carving guide and GLB export, and saves screenshots. Linux uses Xvfb/Mesa; Windows uses a hash-verified Mesa driver for CI only. That driver is not shipped in the app and never replaces system drivers.
 
-Downloads are a Windows ZIP and Linux tar.gz. Extract the whole archive and keep `_internal` beside the executable. Python and Blender are not required. Hardware driver compatibility, native file dialogs and printing still need manual testing, so these releases are marked beta.
+Downloads are Windows and macOS ZIPs and a Linux tar.gz. Extract the whole archive and keep `_internal` beside the executable. Python and Blender are not required. Hardware driver compatibility, native file dialogs and printing still need manual testing, so these releases are marked beta.
+
+The compiled-app interaction pass sends mouse and keyboard events to the actual controls. It verifies linked and independent removable eyes, stabilized mirrored freehand carving with a measured volume decrease, undo/redo, viewport drag/zoom/front view, body selection and stem/lid removal, all 56 face presets, completion of the lid/candle animation, typed names, editable save/open roundtrip, GLB/guide buttons, gallery reopening and confirmed/cancelled deletion, and the Info repository URL. File dialog selections and browser/file-manager handoffs are supplied by the test so CI cannot block on external windows; physical printing and native picker interaction are not covered.
