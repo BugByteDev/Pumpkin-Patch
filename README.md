@@ -2,6 +2,10 @@
 
 Native Python jack-o'-lantern creator. The application UI is painted with PySide6/QPainter; Python and PyOpenGL own the 3D viewport. GPU shading uses GLSL. The desktop application does not use a browser engine, HTML UI, or JavaScript, and does not require Blender at runtime.
 
+## Downloads
+
+[Windows x64 and Linux x64 beta downloads](https://github.com/BugByteDev/Pumpkin-Patch/releases) are available from GitHub Releases. Extract the entire archive before launching. Neither Python nor Blender needs to be installed.
+
 ## Run
 
 On this Mac, open `releases/Pumpkin Patch.app`. This is an Apple Silicon build with the Python runtime, native libraries, font, and body lattices included.
@@ -44,7 +48,7 @@ python -m pip install pyinstaller
 pyinstaller PumpkinPatch.spec
 ```
 
-Build on the target operating system. Only the macOS Apple Silicon application has been built and visually checked here; Windows and Linux binaries are not included. The offscreen tests check controllers, data, geometry, export, carving and orbit math; they do not replace a native GPU check.
+Build on the target operating system. The macOS Apple Silicon app is built locally. Windows x64 and Linux x64 beta builds are compiled on their native operating systems with GitHub Actions. Both pass the test suite and compiled-app software OpenGL checks, including spawned carving workers and saved gallery previews. Hardware drivers, native file dialogs and printing still need real-world testing.
 
 `tools/build_assets.py` rebuilds the bundled base surfaces with Blender. The editable Blender source and base GLBs are in `assets/`. Runtime Boolean carving uses manifold3d and does not use voxels.
 
