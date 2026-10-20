@@ -26,7 +26,7 @@ class FeatureChecks:
         import native
         piece=any(f['name'].casefold()==label.casefold() for f in native.LIBRARY[self.w.category])
         for attempt in range(20):
-            self.w.repaint()
+            self.w.grab()
             exact=[rect for rect,fn,name in self.w.hits if name.casefold()==label.casefold()]
             matches=exact or ([] if piece else [rect for rect,fn,name in self.w.hits if label.casefold() in name.casefold()])
             if matches:
@@ -35,9 +35,9 @@ class FeatureChecks:
             point=self.w.choice_rect.center().toPoint();old=self.w.library_scroll
             QCoreApplication.sendEvent(self.w,QWheelEvent(QPointF(point),QPointF(self.w.mapToGlobal(point)),QPoint(),QPoint(0,-120),Qt.NoButton,Qt.NoModifier,Qt.NoScrollPhase,False))
             if self.w.library_scroll==old:break
-        raise AssertionError('Control not visible: '+label)
+        raise AssertionError('Control not visible: '+label+'; category='+self.w.category+'; scroll='+str(self.w.library_scroll)+'; controls='+str([name for _,_,name in self.w.hits]))
     def panel_click(self,action,index=None):
-        panel=self.w.overlay;panel.repaint()
+        panel=self.w.overlay;panel.grab()
         matches=[rect for rect,a,i in panel.hits if a==action and (index is None or i==index)]
         assert matches,'Panel control not visible: '+action
         WidgetInput.mouseClick(panel,Qt.LeftButton,pos=matches[-1].center().toPoint())

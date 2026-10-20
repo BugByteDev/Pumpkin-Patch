@@ -44,7 +44,9 @@ def run(output):
     def finish(error=None):
         poll.stop()
         result['ok']=error is None
-        if error:result['error']=error
+        if error:
+            result['error']=error
+            window.grab().save(str(output/'failure.png'))
         (output/'smoke.json').write_text(json.dumps(result,indent=2))
         window.close();app.exit(1 if error else 0)
     def tick():
