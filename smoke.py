@@ -82,6 +82,11 @@ def run(output):
                 result['checks'].append('GLB, editable save roundtrip and guide exported')
                 window.save();window.gallery();state=4;return
             if state==4:
+                thumbnail=native.preview(window.d)
+                if thumbnail is None:return
+                if thumbnail.isNull() or thumbnail.width()<10:raise RuntimeError('Gallery preview could not render')
+                window.overlay.repaint()
+                result['checks'].append('saved pumpkin gallery preview rendered')
                 window.grab().save(str(output/'gallery.png'));window.close_overlay();window.help();state=5;return
             if state==5:
                 window.grab().save(str(output/'info.png'));window.close_overlay()
