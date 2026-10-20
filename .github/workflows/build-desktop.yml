@@ -1,0 +1,94 @@
+name: Build Windows and Linux beta
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: desktop-beta
+  cancel-in-progress: false
+env:
+  GH_TOKEN: ${{ github.token }}
+  GH_REPO: ${{ github.repository }}
+  BETA_TAG: beta-${{ github.run_id }}
+jobs:
+  prepare:
+    if: github.event.repository.private == false
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Prepare draft beta download
+        run: gh release create "$BETA_TAG" --draft --prerelease --target '${{ github.sha }}' --title 'Pumpkin Patch Windows and Linux beta' --notes 'Portable Windows x64 and Linux x64 builds. Automated geometry, controller, export, compiled-app startup and software OpenGL checks pass before publication. Hardware drivers and native file dialogs still need manual testing. Extract the whole archive; Python and Blender are not required.'
+  build:
+    needs: prepare
+    # Standard public-repository runners only. No paid or self-hosted runners.
+    if: github.event.repository.private == false
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2022
+            label: windows-x64
+          - os: ubuntu-22.04
+            label: linux-x64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUTF8: '1'
+      PIP_DISABLE_PIP_VERSION_CHECK: '1'
+      LIBGL_ALWAYS_SOFTWARE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Linux display and graphics libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1-mesa-dri libegl1 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 libxcb-xinerama0
+      - name: Install build dependencies
+        run: python -m pip install -r requirements.txt pyinstaller==6.22.3
+      - name: Run automated tests with isolated user data
+        shell: bash
+        env:
+          QT_QPA_PLATFORM: offscreen
+          PUMPKIN_DATA: ${{ runner.temp }}/pumpkin-tests
+        run: python -m unittest discover -s tests -v
+      - name: Compile self-contained app
+        run: python -m PyInstaller --noconfirm --clean PumpkinPatch.spec
+      - name: Set up CI-only Windows software OpenGL
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP 'mesa.7z'
+          Invoke-WebRequest 'https://github.com/pal1000/mesa-dist-win/releases/download/26.2.4/mesa3d-26.2.4-release-msvc.7z' -OutFile $archive
+          if ((Get-FileHash $archive -Algorithm SHA256).Hash.ToLower() -ne '351fc8c8b695878ffb3eaa044b3ead08672a48b1a045e3c3e3975811df0f6695') { throw 'Mesa download hash mismatch' }
+          & 7z x $archive "-o$env:RUNNER_TEMP/mesa" '-y'
+          if ($LASTEXITCODE -ne 0) { throw 'Mesa extraction failed' }
+      - name: Test compiled Windows app and render screenshots
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: python tools/check_packaged.py --executable 'dist/Pumpkin Patch/Pumpkin Patch.exe' --report-dir smoke-results --opengl-dir "$env:RUNNER_TEMP/mesa/x64"
+      - name: Test compiled Linux app and render screenshots
+        if: runner.os == 'Linux'
+        run: xvfb-run -a -s '-screen 0 1600x1000x24' python tools/check_packaged.py --executable 'dist/Pumpkin Patch/Pumpkin Patch' --report-dir smoke-results
+      - name: Package beta download
+        shell: bash
+        run: python tools/package_release.py ${{ matrix.label }}
+      - name: Upload beta app to draft release
+        shell: bash
+        run: gh release upload "$BETA_TAG" artifacts/* --clobber
+      - name: Upload test reports and screenshots
+        if: always()
+        shell: bash
+        run: |
+          if [ -d smoke-results ]; then
+            python -c "import shutil; shutil.make_archive('checks-${{ matrix.label }}','zip','smoke-results')"
+            gh release upload "$BETA_TAG" checks-${{ matrix.label }}.zip --clobber
+          fi
+  publish:
+    needs: build
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Publish passing beta builds
+        run: gh release edit "$BETA_TAG" --draft=false --prerelease

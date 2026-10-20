@@ -1,0 +1,42 @@
+[
+  {
+    "body": "classic",
+    "objects": 5,
+    "triangles": 24904
+  },
+  {
+    "body": "tall",
+    "objects": 5,
+    "triangles": 24904
+  },
+  {
+    "body": "squat",
+    "objects": 5,
+    "triangles": 24904
+  },
+  {
+    "body": "round",
+    "objects": 5,
+    "triangles": 24904
+  },
+  {
+    "body": "pear",
+    "objects": 5,
+    "triangles": 24904
+  },
+  {
+    "body": "topheavy",
+    "objects": 5,
+    "triangles": 24904
+  },
+  {
+    "body": "mini",
+    "objects": 5,
+    "triangles": 24904
+  },
+  {
+    "body": "lumpy",
+    "objects": 5,
+    "triangles": 24904
+  }
+]
