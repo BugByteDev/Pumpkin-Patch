@@ -5,6 +5,7 @@ from pathlib import Path
 
 def run(output):
     output=Path(output).resolve();output.mkdir(parents=True,exist_ok=True)
+    (output/'progress.json').write_text(json.dumps({'stage':'loading runtime'}))
     isolated=tempfile.TemporaryDirectory(prefix='pumpkin-smoke-')
     os.environ['PUMPKIN_DATA']=str(Path(isolated.name)/'data')
     # A CI-only Mesa driver lets the Windows runner exercise the real shader.
@@ -25,6 +26,7 @@ def run(output):
     import numpy as np
     fmt=QSurfaceFormat();fmt.setVersion(3,3);fmt.setProfile(QSurfaceFormat.CoreProfile);fmt.setDepthBufferSize(24);fmt.setSamples(4);QSurfaceFormat.setDefaultFormat(fmt)
     app=QApplication([sys.argv[0]]);QFontDatabase.addApplicationFont(str(native.ROOT/'assets/fonts/PatrickHand-Regular.ttf'));app.setFont(native.font(19))
+    (output/'progress.json').write_text(json.dumps({'stage':'creating window'}))
     window=native.Patch();window.show()
     result={'platform':sys.platform,'frozen':bool(getattr(sys,'frozen',False)),'checks':[]}
     state=0;deadline=time.monotonic()+120;poll=QTimer()
@@ -37,6 +39,7 @@ def run(output):
     def tick():
         nonlocal state
         try:
+            (output/'progress.json').write_text(json.dumps({'stage':state,'program':bool(window.view.program),'objects':len(window.view.objects),'job':window.job is not None,'revision':window.revision,'wanted':window.want_revision,'status':window.message}))
             if time.monotonic()>deadline:raise TimeoutError('App did not finish building/rendering within 120 seconds')
             if window.view.error:raise RuntimeError(window.view.error)
             if window.delay.isActive() or window.job is not None or window.revision!=window.want_revision:return
