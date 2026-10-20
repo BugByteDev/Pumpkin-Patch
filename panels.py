@@ -1,7 +1,7 @@
 """Painted in-app pages. No dialogs, OS window chrome or native scrollbars."""
 import copy,json,math
-from PySide6.QtCore import Qt,QRectF,QPointF
-from PySide6.QtGui import QPainter,QColor,QPen,QFontMetricsF
+from PySide6.QtCore import Qt,QRectF,QPointF,QUrl
+from PySide6.QtGui import QPainter,QColor,QPen,QFontMetricsF,QDesktopServices
 from PySide6.QtWidgets import QWidget
 from native import CanvasHelpers,font,Y,C,O,A,R,B
 from storage import DATA,validate
@@ -38,6 +38,9 @@ class Panel(QWidget,CanvasHelpers):
         elif e.key() in (Qt.Key_Up,Qt.Key_PageUp):self.scroll=max(0,self.scroll-100);self.update()
 
 class InfoPanel(Panel):
+    REPOSITORY='https://github.com/BugByteDev/Pumpkin-Patch'
+    def action(self,action,index):
+        if action=='repository':QDesktopServices.openUrl(QUrl(self.REPOSITORY))
     paragraphs=[
       ('MAKE IT YOURS','Choose a body, stem and lid, then add eyes, brows, a nose, a mouth, teeth or details. Every piece has a None / remove option. New pumpkins start with a blank face.'),
       ('MOVE EACH PIECE','Use the sliders for position, width, height and rotation. Link a pair to edit both sides together, or choose one side to make an uneven face.'),
@@ -50,7 +53,12 @@ class InfoPanel(Panel):
       ('ALL OFFLINE','Blender is not needed to use the app. Preset previews are bundled. Your edited pumpkin meshes and previews are cached locally, so reopening them reuses the saved renders.')]
     def paintEvent(self,e):
         p=QPainter(self);self.shell(p,'welcome to the patch','Everything you need to make your pumpkin.');p.save();p.setClipRect(self.content)
-        y=self.content.top()-self.scroll;metrics=QFontMetricsF(font(21))
+        y=self.content.top()-self.scroll
+        button=QRectF(self.content.left()+4,y,270,42)
+        p.setPen(QPen(QColor(B),2));p.setBrush(QColor(Y));p.drawRoundedRect(button,5,5)
+        self.txt(p,button.x()+12,button.y()+8,'open GitHub repository ↗',21)
+        self.hits.append((button.intersected(self.content),'repository',None))
+        y+=66;metrics=QFontMetricsF(font(21))
         for title,text in self.paragraphs:
             self.txt(p,self.content.left()+4,y,title,23,R);y+=35
             bounds=metrics.boundingRect(QRectF(0,0,self.content.width()-18,4000),Qt.TextWordWrap,text)

@@ -29,3 +29,10 @@ class PanelTests(unittest.TestCase):
         d=native.default_design();key=signature(d,image=True);future=Future();future.set_exception(RuntimeError('worker failed'))
         thumbnails._cache[key]=future
         image=thumbnails.preview(d);self.assertFalse(image.isNull());thumbnails._cache.pop(key)
+
+    def test_info_repository_button_opens_the_project_in_browser(self):
+        self.w.help()
+        with patch('panels.QDesktopServices.openUrl',return_value=True) as open_url:
+            self.w.overlay.action('repository',None)
+        self.assertEqual(open_url.call_args.args[0].toString(),'https://github.com/BugByteDev/Pumpkin-Patch')
+        self.w.close_overlay()
