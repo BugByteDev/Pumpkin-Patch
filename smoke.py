@@ -16,6 +16,11 @@ def run(output):
         driver=Path(os.environ['PUMPKIN_CI_OPENGL_DIR'])
         dll_handle=os.add_dll_directory(str(driver))
         ctypes.WinDLL(str(driver/'opengl32.dll'))
+        # PyOpenGL otherwise resolves an explicit System32 path, even when Qt
+        # has loaded Mesa. WGL contexts cannot be shared across those DLLs.
+        import ctypes.util
+        find_library=ctypes.util.find_library
+        ctypes.util.find_library=lambda name: str(driver/'opengl32.dll') if name.lower() in ('opengl32','opengl32.dll') else find_library(name)
     from PySide6.QtCore import QTimer
     from PySide6.QtGui import QSurfaceFormat,QFontDatabase
     from PySide6.QtWidgets import QApplication
@@ -27,7 +32,11 @@ def run(output):
     fmt=QSurfaceFormat();fmt.setVersion(3,3);fmt.setProfile(QSurfaceFormat.CoreProfile);fmt.setDepthBufferSize(24);fmt.setSamples(4);QSurfaceFormat.setDefaultFormat(fmt)
     app=QApplication([sys.argv[0]]);QFontDatabase.addApplicationFont(str(native.ROOT/'assets/fonts/PatrickHand-Regular.ttf'));app.setFont(native.font(19))
     (output/'progress.json').write_text(json.dumps({'stage':'creating window'}))
-    window=native.Patch();window.show()
+    window=native.Patch()
+    try:window.show()
+    except Exception:
+        (output/'graphics-error.txt').write_text(str(window.view.error)+'\n'+traceback.format_exc())
+        raise
     result={'platform':sys.platform,'frozen':bool(getattr(sys,'frozen',False)),'checks':[]}
     state=0;deadline=time.monotonic()+120;poll=QTimer()
     def finish(error=None):
