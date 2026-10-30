@@ -16,6 +16,7 @@ DisableProgramGroupPage=yes
 DisableWelcomePage=no
 WizardStyle=modern
 SetupIconFile=..\assets\icons\pumpkin-patch.ico
+UninstallDisplayName=Pumpkin Patch
 UninstallDisplayIcon={app}\Pumpkin Patch.exe
 OutputDir=..\installer-output
 OutputBaseFilename=Pumpkin-Patch-Setup
