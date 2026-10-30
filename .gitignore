@@ -9,3 +9,7 @@ releases/
 artifacts/
 smoke-results/
 *.blend1
+installer/payload.iss
+installer-input/
+installer-output/
+installer-results/

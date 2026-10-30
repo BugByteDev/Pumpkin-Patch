@@ -1,0 +1,65 @@
+name: Windows easy installer
+on:
+  workflow_dispatch:
+    inputs:
+      source_tag:
+        description: Tested release containing the Windows app
+        required: true
+        default: beta-39422499628
+permissions:
+  contents: write
+concurrency:
+  group: windows-installer
+  cancel-in-progress: false
+env:
+  GH_TOKEN: ${{ github.token }}
+  GH_REPO: ${{ github.repository }}
+  SOURCE_TAG: ${{ inputs.source_tag }}
+jobs:
+  installer:
+    if: github.event.repository.private == false
+    runs-on: windows-2022
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Get the already-tested Windows app
+        shell: bash
+        run: gh release download "$SOURCE_TAG" --pattern 'Pumpkin-Patch-windows-x64-beta.zip*' --dir installer-input
+      - name: Verify payload and prepare small installer
+        run: python tools/prepare_installer.py
+      - name: Compile online installer
+        shell: pwsh
+        run: |
+          $compiler = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (!(Test-Path $compiler)) { throw 'Inno Setup 6 compiler is missing from the runner' }
+          & $compiler installer/windows.iss
+          if ($LASTEXITCODE -ne 0) { throw 'Installer compilation failed' }
+          if ((Get-Item installer-output/Pumpkin-Patch-Setup.exe).Length -ge 8MB) { throw 'Setup is too large for the Discord-friendly target' }
+      - name: Install test tools and CI-only graphics driver
+        shell: pwsh
+        run: |
+          python -m pip install pywinauto pillow
+          $archive = Join-Path $env:RUNNER_TEMP 'mesa.7z'
+          Invoke-WebRequest 'https://github.com/pal1000/mesa-dist-win/releases/download/26.2.4/mesa3d-26.2.4-release-msvc.7z' -OutFile $archive
+          if ((Get-FileHash $archive -Algorithm SHA256).Hash.ToLower() -ne '351fc8c8b695878ffb3eaa044b3ead08672a48b1a045e3c3e3975811df0f6695') { throw 'Mesa hash mismatch' }
+          & 7z x $archive "-o$env:RUNNER_TEMP/mesa" '-y'
+          if ($LASTEXITCODE -ne 0) { throw 'Mesa extraction failed' }
+      - name: Test the setup wizard, installed app, upgrade and uninstall
+        shell: pwsh
+        run: python tools/check_installer.py --opengl-dir "$env:RUNNER_TEMP/mesa/x64"
+      - name: Publish the tested installer
+        shell: bash
+        run: |
+          python -c "from pathlib import Path; import hashlib; p=Path('installer-output/Pumpkin-Patch-Setup.exe'); p.with_suffix('.exe.sha256').write_text(hashlib.sha256(p.read_bytes()).hexdigest()+'  '+p.name+'\n')"
+          gh release upload "$SOURCE_TAG" installer-output/Pumpkin-Patch-Setup.exe installer-output/Pumpkin-Patch-Setup.exe.sha256 --clobber
+      - name: Save installer test results
+        if: always()
+        shell: bash
+        run: |
+          if [ -d installer-results ]; then
+            python -c "import shutil; shutil.make_archive('installer-checks','zip','installer-results')"
+            gh release upload "$SOURCE_TAG" installer-checks.zip --clobber
+          fi
