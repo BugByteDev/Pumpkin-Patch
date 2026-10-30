@@ -38,10 +38,12 @@ try:
     process=subprocess.Popen([str(setup),'/SP-','/NORESTART','/LOG='+str(report/'setup.log')])
     wizard=Desktop(backend='win32').window(title='Setup - Pumpkin Patch')
     wizard.wait('visible',timeout=40)
+    time.sleep(.8)  # Let Windows paint the visible page before screenshot capture.
     wizard.capture_as_image().save(report/'welcome.png')
     wait_until(lambda:button(wizard,'Next'),30).click()
     wait_until(lambda:button(wizard,'Install'),30).click()
     finish=wait_until(lambda:button(wizard,'Finish'),240)
+    time.sleep(.8)
     wizard.capture_as_image().save(report/'finished.png')
     # Leave launching to the isolated app feature test below.
     lists=[c for c in wizard.descendants(class_name='TNewCheckListBox') if c.is_visible()]
